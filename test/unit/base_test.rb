@@ -8,7 +8,6 @@ class BaseTest < Test::Unit::TestCase
     assert_equal Coverband::RedisStore, coverband.instance_variable_get('@reporter').class
   end
 
-
   test 'configure memory caching' do
     Coverband.configuration.memory_caching = true
     coverband = Coverband::Base.instance.reset_instance
@@ -82,5 +81,22 @@ class BaseTest < Test::Unit::TestCase
     coverband.stop
     coverband.save
   end
+
+  test 'passing "true" to configure_sampling enables sampling' do
+    coverband = Coverband::Base.instance.reset_instance
+    coverband.instance_variable_set("@sample_percentage", 0.0)
+    assert_equal false, coverband.instance_variable_get("@enabled")
+    coverband.configure_sampling(true)
+    assert_equal true, coverband.instance_variable_get("@enabled")
+  end
+
+  test 'passing "false" to configure_sampling does not enable sampling' do
+    coverband = Coverband::Base.instance.reset_instance
+    coverband.instance_variable_set("@sample_percentage", 0.0)
+    assert_equal false, coverband.instance_variable_get("@enabled")
+    coverband.configure_sampling(false)
+    assert_equal false, coverband.instance_variable_get("@enabled")
+  end
+
 
 end

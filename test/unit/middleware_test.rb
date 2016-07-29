@@ -24,7 +24,7 @@ class MiddlewareTest < Test::Unit::TestCase
     middleware = Coverband::Middleware.new(fake_app)
     assert_equal false, Coverband::Base.instance.instance_variable_get("@enabled")
     Coverband::Base.instance.instance_variable_set("@sample_percentage", 100.0)
-    results = middleware.call(request)
+    middleware.call(request)
     assert_equal true, Coverband::Base.instance.instance_variable_get("@enabled")
   end
 
@@ -34,7 +34,7 @@ class MiddlewareTest < Test::Unit::TestCase
     middleware = Coverband::Middleware.new(fake_app)
     assert_equal false, Coverband::Base.instance.instance_variable_get("@enabled")
     Coverband::Base.instance.instance_variable_set("@sample_percentage", 0.0)
-    results = middleware.call(request)
+    middleware.call(request)
     assert_equal false, Coverband::Base.instance.instance_variable_get("@enabled")
   end
 
@@ -44,7 +44,7 @@ class MiddlewareTest < Test::Unit::TestCase
     middleware = Coverband::Middleware.new(fake_app)
     assert_equal false, Coverband::Base.instance.instance_variable_get("@tracer_set")
     Coverband::Base.instance.instance_variable_set("@sample_percentage", 100.0)
-    results = middleware.call(request)
+    middleware.call(request)
     assert_equal false, Coverband::Base.instance.instance_variable_get("@tracer_set")
   end
 
@@ -54,7 +54,7 @@ class MiddlewareTest < Test::Unit::TestCase
     middleware = Coverband::Middleware.new(fake_app)
     assert_equal false, Coverband::Base.instance.instance_variable_get("@tracer_set")
     middleware.instance_variable_set("@sample_percentage", 0.0)
-    results = middleware.call(request)
+    middleware.call(request)
     assert_equal false, Coverband::Base.instance.instance_variable_get("@tracer_set")
   end
 
@@ -64,8 +64,32 @@ class MiddlewareTest < Test::Unit::TestCase
     middleware = Coverband::Middleware.new(fake_app)
     assert_equal false, Coverband::Base.instance.instance_variable_get("@enabled")
     Coverband::Base.instance.instance_variable_set("@sample_percentage", 100.0)
-    results = middleware.call(request)
+    middleware.call(request)
     assert_equal true, Coverband::Base.instance.instance_variable_get("@enabled")
+  end
+
+  test 'configure coverband with force flag set to true if middleware checker returns true' do
+    header = 'x-enable-coverage'
+    checker = lambda { |env| env.key?("HTTP_#{header.upcase}") }
+    request = Rack::MockRequest.env_for("/anything.json", "HTTP_#{header.upcase}" => '')
+    Coverband::Base.instance.expects(:configure_sampling).with(true)
+    middleware = Coverband::Middleware.new(fake_app, 'force_coverage_checker' => checker)
+    middleware.call(request)
+  end
+
+  test 'configure coverband with force flag set to false if middleware checker returns false' do
+    checker = lambda { |env| false }
+    request = Rack::MockRequest.env_for("/anything.json")
+    Coverband::Base.instance.expects(:configure_sampling).with(false)
+    middleware = Coverband::Middleware.new(fake_app, 'force_coverage_checker' => checker)
+    middleware.call(request)
+  end
+
+  test 'configure coverband with force flag set to false if no middleware checker is present' do
+    request = Rack::MockRequest.env_for("/anything.json")
+    Coverband::Base.instance.expects(:configure_sampling).with(false)
+    middleware = Coverband::Middleware.new(fake_app)
+    middleware.call(request)
   end
 
   test 'reports coverage when an error is raised' do
@@ -75,7 +99,6 @@ class MiddlewareTest < Test::Unit::TestCase
     middleware = Coverband::Middleware.new(fake_app_raise_error)
     middleware.call(request) rescue nil
   end
-
 
   test 'always report coverage when sampling' do
     request = Rack::MockRequest.env_for("/anything.json")
@@ -88,10 +111,9 @@ class MiddlewareTest < Test::Unit::TestCase
     fake_redis.stubs(:info).returns({'redis_version' => 3.0})
     fake_redis.expects(:sadd).at_least_once
     fake_redis.expects(:sadd).at_least_once.with("coverband.#{basic_rack_ruby_file}", [5])
-    results = middleware.call(request)
+    middleware.call(request)
     assert_equal true, Coverband::Base.instance.instance_variable_get("@enabled")
   end
-
 
   test 'report only on calls when configured' do
     request = Rack::MockRequest.env_for("/anything.json")
@@ -105,11 +127,9 @@ class MiddlewareTest < Test::Unit::TestCase
     fake_redis.stubs(:info).returns({'redis_version' => 3.0})
     fake_redis.expects(:sadd).at_least_once
     fake_redis.expects(:sadd).at_least_once.with("coverband.#{basic_rack_ruby_file}", [4])
-    results = middleware.call(request)
+    middleware.call(request)
     assert_equal true, Coverband::Base.instance.instance_variable_get("@enabled")
   end
-
-
 
   private
 

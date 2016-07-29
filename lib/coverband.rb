@@ -20,7 +20,7 @@ module Coverband
   end
 
   def self.parse_baseline(baseline_file = './tmp/coverband_baseline.json')
-    baseline = if File.exist?(baseline_file)
+    if File.exist?(baseline_file)
       JSON.parse(File.read(baseline_file))
     else
       {}

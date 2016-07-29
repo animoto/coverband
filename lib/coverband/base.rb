@@ -57,8 +57,8 @@ module Coverband
       self
     end
 
-    def configure_sampling
-      if @startup_delay!=0 || (rand * 100.0) > @sample_percentage
+    def configure_sampling(force = false)
+      if !force && (@startup_delay!=0 || (rand * 100.0) > @sample_percentage)
         @startup_delay -= 1 if @startup_delay > 0
         @enabled = false
       else
